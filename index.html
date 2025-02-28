@@ -261,6 +261,10 @@
     function initialize() {
         try {
             loadState();
+            // Set current date to today if not already set
+            if (!state.currentDate) {
+                state.currentDate = getTodayDate();
+            }
             updateDateDisplay();
             setDateSelector();
             switchTab('daily');
@@ -303,7 +307,7 @@
         try {
             const loadedState = JSON.parse(saved);
             // Always set the current date to today's date when loading the state
-            loadedState.currentDate = new Date().toISOString().split('T')[0];
+            loadedState.currentDate = getTodayDate();
             // Initialize arrays if they don't exist
             if (!loadedState.approvalItems) loadedState.approvalItems = [];
             if (!loadedState.dailySummary) loadedState.dailySummary = {};
@@ -317,7 +321,7 @@
         }
     } else {
         // If there is no saved state, set the current date to today's date
-        state.currentDate = new Date().toISOString().split('T')[0];
+        state.currentDate = getTodayDate();
     }
     updateDateDisplay();
     updateTotalsDisplay();
@@ -413,32 +417,39 @@
     }
 
     function goToToday() {
-        const today = new Date().toISOString().split('T')[0];
-        changeCurrentDate(today);
+        changeCurrentDate(getTodayDate());
     }
 
     function goToPreviousDay() {
         const date = new Date(state.currentDate);
         date.setDate(date.getDate() - 1);
-        changeCurrentDate(date.toISOString().split('T')[0]);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        changeCurrentDate(localDate.toISOString().split('T')[0]);
     }
 
     function goToNextDay() {
         const date = new Date(state.currentDate);
         date.setDate(date.getDate() + 1);
-        changeCurrentDate(date.toISOString().split('T')[0]);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        changeCurrentDate(localDate.toISOString().split('T')[0]);
     }
 
     function goToPreviousMonth() {
         const date = new Date(state.currentDate);
         date.setMonth(date.getMonth() - 1);
-        changeCurrentDate(date.toISOString().split('T')[0]);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        changeCurrentDate(localDate.toISOString().split('T')[0]);
     }
 
     function goToNextMonth() {
         const date = new Date(state.currentDate);
         date.setMonth(date.getMonth() + 1);
-        changeCurrentDate(date.toISOString().split('T')[0]);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+        changeCurrentDate(localDate.toISOString().split('T')[0]);
     }
 
     function changeCurrentDate(newDate) {
@@ -1241,6 +1252,15 @@
     function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString();
+    }
+
+    // Get today's date in YYYY-MM-DD format, accounting for timezone
+    function getTodayDate() {
+        const now = new Date();
+        // Adjust for local timezone
+        const offset = now.getTimezoneOffset();
+        const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+        return localDate.toISOString().split('T')[0];
     }
 
     // Initialize on page load
