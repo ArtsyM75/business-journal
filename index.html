@@ -3,35 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Daily and Monthly Journal for tracking notes and activities.">
-    <meta name="keywords" content="journal, daily notes, monthly notes, activity tracker">
     <title>Daily & Monthly Notes Tracker</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="scripts.js" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @keyframes pulseGreen {
+            0% { background-color: rgb(220 252 231); }
+            50% { background-color: rgb(187 247 208); }
+            100% { background-color: rgb(220 252 231); }
+        }
+        
+        @keyframes pulseBlue {
+            0% { background-color: rgb(219 234 254); }
+            50% { background-color: rgb(191 219 254); }
+            100% { background-color: rgb(219 234 254); }
+        }
+
+        @keyframes emergencyPulse {
+            0% { background-color: rgb(254 226 226); }
+            50% { background-color: rgb(248 113 113); }
+            100% { background-color: rgb(254 226 226); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sale-highlight { animation: pulseGreen 2s; }
+        .approval-highlight { animation: pulseBlue 2s; }
+        .note-type-sale { background-color: rgb(220 252 231); }
+        .note-type-approval { background-color: rgb(219 234 254); }
+        .note-type-received { background-color: rgb(254 249 195); }
+        .note-type-shipped { background-color: rgb(254 243 199); }
+        .note-type-delivered { background-color: rgb(220 252 231); }
+        .note-type-return { background-color: rgb(254 226 226); }
+        .note-type-general { background-color: rgb(243 244 246); }
+        .note-type-callmade { background-color: rgb(224 231 255); }
+        .note-type-callreceived { background-color: rgb(243 232 255); }
+        .note-type-emailsent { background-color: rgb(209 250 229); }
+        .note-type-emailreceived { background-color: rgb(207 250 254); }
+        .note-type-emergency { 
+            background-color: rgb(254 226 226);
+            animation: emergencyPulse 2s infinite;
+        }
+        
+        .tab-active {
+            border-bottom: 2px solid #4f46e5;
+            color: #4f46e5;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="max-w-6xl mx-auto p-4">
         <!-- Header Section -->
-        <header>
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold">Daily & Monthly Notes Tracker</h1>
-                    <p id="currentDateDisplay" class="text-gray-600"></p>
-                </div>
-                <div class="space-x-2">
-                    <button onclick="exportToDocument()" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">Export Report</button>
-                    <button onclick="backupToFile()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Save Backup</button>
-                    <input type="file" id="restoreFile" class="hidden" onchange="restoreFromFile(this)">
-                    <button onclick="document.getElementById('restoreFile').click()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Restore Backup</button>
-                    <button onclick="clearAllData()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Clear All Data</button>
-                </div>
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="text-2xl font-bold">Daily & Monthly Notes Tracker</h1>
+                <p id="currentDateDisplay" class="text-gray-600"></p>
             </div>
-        </header>
+            <div class="space-x-2">
+                <button onclick="exportToDocument()" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+                    Export Report
+                </button>
+                <button onclick="backupToFile()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Save Backup
+                </button>
+                <input type="file" id="restoreFile" class="hidden" onchange="restoreFromFile(this)">
+                <button onclick="document.getElementById('restoreFile').click()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    Restore Backup
+                </button>
+                <button onclick="clearAllData()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    Clear All Data
+                </button>
+            </div>
+        </div>
 
         <!-- Date Navigation -->
-        <section id="date-navigation" class="bg-white rounded-lg shadow p-4 mb-4">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="text-xl font-bold">Date Navigation</h2>
@@ -39,26 +92,36 @@
                 </div>
                 <div class="flex space-x-2">
                     <input type="date" id="dateSelector" class="p-2 border rounded">
-                    <button onclick="goToToday()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Today</button>
-                    <button onclick="goToPreviousDay()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">← Prev Day</button>
-                    <button onclick="goToNextDay()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Next Day →</button>
-                    <button onclick="goToPreviousMonth()" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">← Prev Month</button>
-                    <button onclick="goToNextMonth()" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">Next Month →</button>
+                    <button onclick="goToToday()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        Today
+                    </button>
+                    <button onclick="goToPreviousDay()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        ← Prev Day
+                    </button>
+                    <button onclick="goToNextDay()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        Next Day →
+                    </button>
+                    <button onclick="goToPreviousMonth()" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+                        ← Prev Month
+                    </button>
+                    <button onclick="goToNextMonth()" class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+                        Next Month →
+                    </button>
                 </div>
             </div>
-        </section>
+        </div>
 
         <!-- Tab Navigation -->
-        <nav class="bg-white rounded-lg shadow mb-4">
+        <div class="bg-white rounded-lg shadow mb-4">
             <div class="flex border-b">
                 <button onclick="switchTab('daily')" id="tab-daily" class="px-6 py-3 text-lg font-medium tab-active">Daily View</button>
                 <button onclick="switchTab('monthly')" id="tab-monthly" class="px-6 py-3 text-lg font-medium text-gray-600">Monthly Summary</button>
                 <button onclick="switchTab('approval')" id="tab-approval" class="px-6 py-3 text-lg font-medium text-gray-600">Approval Tracking</button>
             </div>
-        </nav>
+        </div>
 
         <!-- Daily View Tab Content -->
-        <section id="tab-content-daily">
+        <div id="tab-content-daily">
             <!-- Stats Section -->
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="bg-white rounded-lg shadow p-4">
@@ -116,10 +179,10 @@
                 <h2 class="text-xl font-bold mb-4">Today's Notes</h2>
                 <div id="noteList" class="space-y-2"></div>
             </div>
-        </section>
+        </div>
 
         <!-- Monthly Summary Tab Content -->
-        <section id="tab-content-monthly" class="hidden">
+        <div id="tab-content-monthly" class="hidden">
             <div class="bg-white rounded-lg shadow p-4 mb-4">
                 <h2 class="text-xl font-bold mb-4">Monthly Summary</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -134,10 +197,10 @@
                 </div>
                 <div id="monthlySummaryContent" class="mt-6"></div>
             </div>
-        </section>
+        </div>
 
         <!-- Approval Tracking Tab Content -->
-        <section id="tab-content-approval" class="hidden">
+        <div id="tab-content-approval" class="hidden">
             <div class="bg-white rounded-lg shadow p-4 mb-4">
                 <h2 class="text-xl font-bold mb-4">Add Item on Approval</h2>
                 <form id="approvalItemForm" onsubmit="addApprovalItem(event)" class="mb-4">
@@ -153,7 +216,1035 @@
                     <!-- Approval items will be rendered here -->
                 </div>
             </div>
-        </section>
+        </div>
     </div>
+
+<script>
+    // State management
+    let state = {
+        notes: [],
+        tasks: [],
+        salesTotal: 0,
+        approvalsTotal: 0,
+        approvalItems: [],
+        dailySummary: {},
+        currentDate: new Date().toISOString().split('T')[0],
+        activeTab: 'daily'
+    };
+
+    // Add this right after the state management section
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Debounced save
+    let saveTimeout;
+    function debouncedSave() {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            try {
+                localStorage.setItem('notesAppState', JSON.stringify(state));
+                updateTotalsDisplay();
+            } catch (error) {
+                console.error('Failed to save state:', error);
+                alert('Failed to save data. Please ensure you have enough storage space.');
+            }
+        }, 1000);
+    }
+
+    // Enhanced initialize function with error handling
+    function initialize() {
+        try {
+            loadState();
+            updateDateDisplay();
+            setDateSelector();
+            switchTab('daily');
+            renderAll();
+        } catch (error) {
+            console.error('Initialization error:', error);
+            alert('There was an error initializing the application. Please refresh the page.');
+        }
+    }
+
+    // Enhanced renderAll with loading states
+    function renderAll() {
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'text-center py-4';
+        loadingIndicator.textContent = 'Loading...';
+        
+        try {
+            // Show loading state
+            const sections = ['noteList', 'taskList', 'approvalItemsList', 'monthlySummaryContent'];
+            sections.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.innerHTML = loadingIndicator.outerHTML;
+            });
+            
+            // Perform renders
+            renderNotes();
+            renderTasks();
+            renderApprovalItems();
+            renderMonthlySummary();
+        } catch (error) {
+            console.error('Render error:', error);
+            alert('An error occurred while rendering the content. Please refresh the page.');
+        }
+    }
+
+    // Load saved state
+    function loadState() {
+    const saved = localStorage.getItem('notesAppState');
+    if (saved) {
+        try {
+            const loadedState = JSON.parse(saved);
+            // Always set the current date to today's date when loading the state
+            loadedState.currentDate = new Date().toISOString().split('T')[0];
+            // Initialize arrays if they don't exist
+            if (!loadedState.approvalItems) loadedState.approvalItems = [];
+            if (!loadedState.dailySummary) loadedState.dailySummary = {};
+            if (!loadedState.notes) loadedState.notes = [];
+            if (!loadedState.tasks) loadedState.tasks = [];
+            
+            state = loadedState;
+        } catch (e) {
+            console.error("Error loading state:", e);
+            // Keep the default state if loading fails
+        }
+    } else {
+        // If there is no saved state, set the current date to today's date
+        state.currentDate = new Date().toISOString().split('T')[0];
+    }
+    updateDateDisplay();
+    updateTotalsDisplay();
+}
+
+    // Save state
+    function saveState() {
+        try {
+            localStorage.setItem('notesAppState', JSON.stringify(state));
+            updateTotalsDisplay();
+        } catch (error) {
+            console.error('Failed to save state:', error);
+            alert('Failed to save data. Please ensure you have enough storage space.');
+        }
+    }
+
+    // Clear all data
+    function clearAllData() {
+        if (confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
+            // Reset the state
+            state = {
+                notes: [],
+                tasks: [],
+                salesTotal: 0,
+                approvalsTotal: 0,
+                approvalItems: [],
+                dailySummary: {},
+                currentDate: state.currentDate, // Maintain current date
+                activeTab: state.activeTab // Maintain active tab
+            };
+            
+            // Clear localStorage
+            localStorage.removeItem('notesAppState');
+            
+            // Re-render everything
+            renderAll();
+            updateTotalsDisplay();
+            
+            alert('All data has been cleared.');
+        }
+    }
+
+    // Tab switching
+    function switchTab(tabName) {
+        // Update state
+        state.activeTab = tabName;
+        
+        // Update tab buttons
+        document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+            if (tab.id === `tab-${tabName}`) {
+                tab.classList.add('tab-active');
+                tab.classList.remove('text-gray-600');
+            } else if (tab.id.startsWith('tab-') && tab.id !== 'tab-content-') {
+                tab.classList.remove('tab-active');
+                tab.classList.add('text-gray-600');
+            }
+        });
+        
+        // Show/hide content
+        document.querySelectorAll('[id^="tab-content-"]').forEach(content => {
+            if (content.id === `tab-content-${tabName}`) {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
+        });
+        
+        // Refresh the content
+        renderAll();
+    }
+
+    // Date functions
+    function updateDateDisplay() {
+        const date = new Date(state.currentDate);
+        document.getElementById('currentDateDisplay').textContent = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        const monthName = date.toLocaleString('default', { month: 'long' });
+        const year = date.getFullYear();
+        document.getElementById('currentMonthDisplay').textContent = `${monthName} ${year}`;
+    }
+
+    function setDateSelector() {
+        const dateSelector = document.getElementById('dateSelector');
+        dateSelector.value = state.currentDate;
+        dateSelector.addEventListener('change', function(e) {
+            changeCurrentDate(e.target.value);
+        });
+    }
+
+    function goToToday() {
+        const today = new Date().toISOString().split('T')[0];
+        changeCurrentDate(today);
+    }
+
+    function goToPreviousDay() {
+        const date = new Date(state.currentDate);
+        date.setDate(date.getDate() - 1);
+        changeCurrentDate(date.toISOString().split('T')[0]);
+    }
+
+    function goToNextDay() {
+        const date = new Date(state.currentDate);
+        date.setDate(date.getDate() + 1);
+        changeCurrentDate(date.toISOString().split('T')[0]);
+    }
+
+    function goToPreviousMonth() {
+        const date = new Date(state.currentDate);
+        date.setMonth(date.getMonth() - 1);
+        changeCurrentDate(date.toISOString().split('T')[0]);
+    }
+
+    function goToNextMonth() {
+        const date = new Date(state.currentDate);
+        date.setMonth(date.getMonth() + 1);
+        changeCurrentDate(date.toISOString().split('T')[0]);
+    }
+
+    function changeCurrentDate(newDate) {
+        state.currentDate = newDate;
+        document.getElementById('dateSelector').value = newDate;
+        updateDateDisplay();
+        updateTotals();
+        renderAll();
+        saveState();
+    }
+
+    // Update totals display
+    function updateTotalsDisplay() {
+        document.getElementById('salesTotal').textContent = `$${state.salesTotal.toLocaleString()}`;
+        document.getElementById('approvalsTotal').textContent = `$${state.approvalsTotal.toLocaleString()}`;
+    }
+
+    // Celebration function
+    function celebrate(type) {
+        if (type === 'sale' || type === 'approval') {
+            confetti({
+                particleCount: type === 'sale' ? 100 : 50,
+                spread: type === 'sale' ? 70 : 50,
+                origin: { y: 0.6 },
+                colors: type === 'sale' 
+                    ? ['#22c55e', '#16a34a', '#15803d']
+                    : ['#3b82f6', '#2563eb', '#1d4ed8']
+            });
+        }
+    }
+
+    // Quick add templates
+    function quickAdd(type) {
+        const input = document.getElementById('noteInput');
+        switch(type) {
+            case 'Sale':
+                input.value = 'Sold to [client] $';
+                break;
+            case 'Approval':
+                input.value = 'Sent on approval to [client] $';
+                break;
+            case 'Received':
+                input.value = 'Received [items] from [person]';
+                break;
+            case 'Shipped':
+                input.value = 'Shipped to [client] $';
+                break;
+            case 'Delivered':
+                input.value = 'Delivered to [client] $';
+                break;
+            case 'Return':
+                input.value = 'Return from [client] $';
+                break;
+            case 'Note':
+                input.value = 'General Note: ';
+                break;
+            case 'CallMade':
+                input.value = 'Called [person/company] re: ';
+                break;
+            case 'CallReceived':
+                input.value = 'Call from [person/company] re: ';
+                break;
+            case 'EmailSent':
+                input.value = 'Sent email to [person/company] re: ';
+                break;
+            case 'EmailReceived':
+                input.value = 'Email from [person/company] re: ';
+                break;
+            case 'Emergency':
+                input.value = '⚠️ ALERT: ';
+                break;
+        }
+        input.focus();
+    }
+
+    // Add note
+    function addNote(e) {
+        e.preventDefault();
+        const input = document.getElementById('noteInput');
+        const content = input.value.trim();
+        
+        if (!content) {
+            alert('Please enter a note');
+            return;
+        }
+        
+        if (content.length > 500) {
+            alert('Note is too long. Maximum 500 characters allowed.');
+            return;
+        }
+        
+        const amount = extractAmount(content);
+        const type = determineNoteType(content);
+        const note = {
+            id: Date.now(),
+            content: escapeHtml(content),
+            amount,
+            time: new Date().toLocaleTimeString(),
+            type,
+            date: state.currentDate
+        };
+
+        state.notes.unshift(note);
+        updateTotals();
+        updateDailySummary(state.currentDate);
+        debouncedSave();
+        renderNotes();
+        input.value = '';
+
+        if ((type === 'sale' || type === 'approval') && amount > 0) {
+            celebrate(type);
+        }
+    }
+
+    // Add task
+    function addTask(e) {
+        e.preventDefault();
+        const input = document.getElementById('taskInput');
+        const priority = document.getElementById('taskPriority').value;
+        const content = input.value.trim();
+        if (!content) return;
+
+        const task = {
+            id: Date.now(),
+            content,
+            priority,
+            completed: false,
+            date: state.currentDate
+        };
+
+        state.tasks.push(task);
+        saveState();
+        renderTasks();
+        input.value = '';
+    }
+
+    // Toggle task completion
+    function toggleTask(id) {
+        state.tasks = state.tasks.map(task =>
+            task.id === id ? { ...task, completed: !task.completed } : task
+        );
+        saveState();
+        renderTasks();
+    }
+
+    // Edit task
+    function editTask(id) {
+        const task = state.tasks.find(t => t.id === id);
+        if (!task) return;
+        
+        const newContent = prompt('Edit task:', task.content);
+        if (newContent === null) return; // User cancelled
+        
+        state.tasks = state.tasks.map(t =>
+            t.id === id ? { ...t, content: newContent } : t
+        );
+        
+        saveState();
+        renderTasks();
+    }
+
+    // Delete task
+    function deleteTask(id) {
+        if (!confirm('Are you sure you want to delete this task?')) return;
+        
+        state.tasks = state.tasks.filter(t => t.id !== id);
+        saveState();
+        renderTasks();
+    }
+
+    // Edit note
+    function editNote(id) {
+        const note = state.notes.find(n => n.id === id);
+        if (!note) return;
+        
+        const newContent = prompt('Edit note:', note.content);
+        if (newContent === null) return; // User cancelled
+        
+        state.notes = state.notes.map(n =>
+            n.id === id ? { 
+                ...n, 
+                content: newContent, 
+                amount: extractAmount(newContent),
+                type: determineNoteType(newContent)
+            } : n
+        );
+        
+        updateTotals();
+        updateDailySummary(note.date);
+        saveState();
+        renderNotes();
+    }
+
+    // Delete note
+    function deleteNote(id) {
+        if (!confirm('Are you sure you want to delete this note?')) return;
+        
+        const note = state.notes.find(n => n.id === id);
+        if (note) {
+            state.notes = state.notes.filter(n => n.id !== id);
+            updateTotals();
+            updateDailySummary(note.date);
+            saveState();
+            renderNotes();
+        }
+    }
+
+    // Helper functions
+    function extractAmount(content) {
+        const match = content.match(/\$(\d+(\.\d{2})?)/);
+        return match ? parseFloat(match[1]) : 0;
+    }
+
+    function determineNoteType(content) {
+        const lowercaseContent = content.toLowerCase();
+        if (lowercaseContent.includes('sold')) return 'sale';
+        if (lowercaseContent.includes('approval')) return 'approval';
+        if (lowercaseContent.includes('received')) return 'received';
+        if (lowercaseContent.includes('shipped')) return 'shipped';
+        if (lowercaseContent.includes('delivered')) return 'delivered';
+        if (lowercaseContent.includes('return')) return 'return';
+        if (lowercaseContent.includes('called')) return 'callmade';
+        if (lowercaseContent.includes('call from')) return 'callreceived';
+        if (lowercaseContent.includes('sent email')) return 'emailsent';
+        if (lowercaseContent.includes('email from')) return 'emailreceived';
+        if (lowercaseContent.includes('⚠️')) return 'emergency';
+        return 'general';
+    }
+
+    function updateTotals() {
+        const currentDateNotes = getNotesForCurrentDate();
+        
+        state.salesTotal = currentDateNotes
+            .filter(n => n.type === 'sale')
+            .reduce((sum, n) => sum + n.amount, 0);
+            
+        state.approvalsTotal = currentDateNotes
+            .filter(n => n.type === 'approval')
+            .reduce((sum, n) => sum + n.amount, 0);
+    }
+
+    function updateDailySummary(date) {
+        if (!date) return;
+        
+        if (!state.dailySummary[date]) {
+            state.dailySummary[date] = {
+                sales: 0,
+                approvals: 0
+            };
+        }
+        
+        const notesForDate = state.notes.filter(n => n.date === date);
+        
+        state.dailySummary[date].sales = notesForDate
+            .filter(n => n.type === 'sale')
+            .reduce((sum, n) => sum + n.amount, 0);
+            
+        state.dailySummary[date].approvals = notesForDate
+            .filter(n => n.type === 'approval')
+            .reduce((sum, n) => sum + n.amount, 0);
+    }
+
+    // Approval Item functions
+    function addApprovalItem(e) {
+        e.preventDefault();
+        
+        const clientName = document.getElementById('clientName').value.trim();
+        const itemDescription = document.getElementById('itemDescription').value.trim();
+        const itemAmount = parseFloat(document.getElementById('itemAmount').value);
+        
+        if (!clientName || !itemDescription || isNaN(itemAmount)) {
+            alert('Please fill in all fields');
+            return;
+        }
+        
+        const approvalItem = {
+            id: Date.now(),
+            clientName,
+            itemDescription,
+            amount: itemAmount,
+            status: 'on_approval',
+            dateAdded: state.currentDate,
+            dateUpdated: state.currentDate
+        };
+        
+        state.approvalItems.push(approvalItem);
+        
+        // Create a note for this approval item
+        const note = {
+            id: Date.now() + 1, // Ensure unique ID
+            content: `Sent on approval to ${clientName}: ${itemDescription} $${itemAmount}`,
+            amount: itemAmount,
+            time: new Date().toLocaleTimeString(),
+            type: 'approval',
+            date: state.currentDate
+        };
+        
+        state.notes.unshift(note);
+        
+        updateTotals();
+        updateDailySummary(state.currentDate);
+        saveState();
+        renderApprovalItems();
+        renderNotes();
+        
+        // Reset form
+        document.getElementById('clientName').value = '';
+        document.getElementById('itemDescription').value = '';
+        document.getElementById('itemAmount').value = '';
+        
+        // Celebrate
+        celebrate('approval');
+    }
+
+    function markAsSold(id) {
+        const item = state.approvalItems.find(i => i.id === id);
+        if (!item) return;
+        
+        if (confirm(`Mark "${item.itemDescription}" for ${item.clientName} as SOLD?`)) {
+            // Update item status
+            item.status = 'sold';
+            item.dateUpdated = state.currentDate;
+            
+            // Create a sale note
+            const note = {
+                id: Date.now(),
+                content: `Sold to ${item.clientName}: ${item.itemDescription} $${item.amount}`,
+                amount: item.amount,
+                time: new Date().toLocaleTimeString(),
+                type: 'sale',
+                date: state.currentDate
+            };
+            
+            state.notes.unshift(note);
+            
+            updateTotals();
+            updateDailySummary(state.currentDate);
+            saveState();
+            renderApprovalItems();
+            renderNotes();
+            renderMonthlySummary();
+            
+            // Celebrate
+            celebrate('sale');
+        }
+    }
+
+    function markAsReturned(id) {
+        const item = state.approvalItems.find(i => i.id === id);
+        if (!item) return;
+        
+        if (confirm(`Mark "${item.itemDescription}" for ${item.clientName} as RETURNED?`)) {
+            // Update item status
+            item.status = 'returned';
+            item.dateUpdated = state.currentDate;
+            
+            // Create a return note
+            const note = {
+                id: Date.now(),
+                content: `Return from ${item.clientName}: ${item.itemDescription} $${item.amount}`,
+                amount: item.amount,
+                time: new Date().toLocaleTimeString(),
+                type: 'return',
+                date: state.currentDate
+            };
+            
+            state.notes.unshift(note);
+            
+            updateTotals();
+            updateDailySummary(state.currentDate);
+            saveState();
+            renderApprovalItems();
+            renderNotes();
+            renderMonthlySummary();
+        }
+    }
+
+    function deleteApprovalItem(id) {
+        const item = state.approvalItems.find(i => i.id === id);
+        if (!item) return;
+        
+        if (confirm(`Delete "${item.itemDescription}" for ${item.clientName} from approval items?`)) {
+            state.approvalItems = state.approvalItems.filter(i => i.id !== id);
+            saveState();
+            renderApprovalItems();
+        }
+    }
+
+    // Filter functions
+    function getNotesForCurrentDate() {
+        return state.notes.filter(note => note.date === state.currentDate);
+    }
+
+    function getTasksForCurrentDate() {
+        return state.tasks.filter(task => task.date === state.currentDate);
+    }
+
+    // Render functions
+    function renderNotes() {
+        const noteList = document.getElementById('noteList');
+        const currentDateNotes = getNotesForCurrentDate();
+        
+        noteList.innerHTML = currentDateNotes.length > 0 ? 
+            currentDateNotes.map(note => `
+                <div class="p-3 border rounded flex justify-between items-center animate-in note-type-${note.type}">
+                    <div class="flex-1">
+                        <span class="text-gray-500 text-sm">${escapeHtml(note.time)}</span>
+                        <span class="ml-2 cursor-pointer" onclick="editNote(${note.id})">${escapeHtml(note.content)}</span>
+                    </div>
+                    ${note.amount ? `<span class="font-bold">$${note.amount.toLocaleString()}</span>` : ''}
+                    <div class="ml-4 space-x-2">
+                        <button onclick="editNote(${note.id})" 
+                                class="px-2 py-1 text-blue-600 hover:text-blue-800"
+                                aria-label="Edit note">Edit</button>
+                        <button onclick="deleteNote(${note.id})" 
+                                class="px-2 py-1 text-red-600 hover:text-red-800"
+                                aria-label="Delete note">Delete</button>
+                    </div>
+                </div>
+            `).join('') :
+            '<p class="text-gray-500">No notes for this day</p>';
+    }
+
+    function renderTasks() {
+        const taskList = document.getElementById('taskList');
+        const currentDateTasks = getTasksForCurrentDate();
+        
+        taskList.innerHTML = currentDateTasks.length > 0 ?
+            currentDateTasks.map(task => `
+                <div class="p-3 border rounded flex items-center justify-between animate-in ${
+                    task.priority === 'high' ? 'bg-red-50' :
+                    task.priority === 'low' ? 'bg-green-50' : 'bg-blue-50'
+                }">
+                    <div class="flex items-center flex-1">
+                        <input type="checkbox" 
+                            ${task.completed ? 'checked' : ''} 
+                            onchange="toggleTask(${task.id})"
+                            class="mr-3 h-5 w-5 cursor-pointer">
+                        <span class="${task.completed ? 'line-through text-gray-500' : ''}">${task.content}</span>
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="editTask(${task.id})" class="px-2 py-1 text-blue-600 hover:text-blue-800">Edit</button>
+                        <button onclick="deleteTask(${task.id})" class="px-2 py-1 text-red-600 hover:text-red-800">Delete</button>
+                    </div>
+                </div>
+            `).join('') :
+            '<p class="text-gray-500">No tasks for this day</p>';
+    }
+
+    function renderApprovalItems() {
+        const approvalItemsList = document.getElementById('approvalItemsList');
+        if (!approvalItemsList) return;
+        
+        // Group items by status
+        const onApproval = state.approvalItems.filter(i => i.status === 'on_approval');
+        const sold = state.approvalItems.filter(i => i.status === 'sold');
+        const returned = state.approvalItems.filter(i => i.status === 'returned');
+        
+        // Calculate current total on approval
+        const currentApprovalsTotal = onApproval.reduce((sum, item) => sum + item.amount, 0);
+        if (document.getElementById('currentApprovalsTotal')) {
+            document.getElementById('currentApprovalsTotal').textContent = `$${currentApprovalsTotal.toLocaleString()}`;
+        }
+        
+        // Render items on approval
+        let html = `
+            <h3 class="text-lg font-semibold mb-2">Current Items on Approval (${onApproval.length})</h3>
+        `;
+        
+        if (onApproval.length === 0) {
+            html += `<p class="text-gray-500 mb-6">No items currently on approval</p>`;
+        } else {
+            html += `
+                <div class="overflow-x-auto mb-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="border px-4 py-2">Client</th>
+                                <th class="border px-4 py-2">Item</th>
+                                <th class="border px-4 py-2">Amount</th>
+                                <th class="border px-4 py-2">Date Added</th>
+                                <th class="border px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${onApproval.map(item => `
+                                <tr class="bg-blue-50">
+                                    <td class="border px-4 py-2">${item.clientName}</td>
+                                    <td class="border px-4 py-2">${item.itemDescription}</td>
+                                    <td class="border px-4 py-2 text-right">$${item.amount.toLocaleString()}</td>
+                                    <td class="border px-4 py-2">${formatDate(item.dateAdded)}</td>
+                                    <td class="border px-4 py-2">
+                                        <div class="flex space-x-2">
+                                            <button onclick="markAsSold(${item.id})" class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                                Sold
+                                            </button>
+                                            <button onclick="markAsReturned(${item.id})" class="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+                                                Returned
+                                            </button>
+                                            <button onclick="deleteApprovalItem(${item.id})" class="px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // Render recently sold items (last 30 days)
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+        const recentSold = sold.filter(i => new Date(i.dateUpdated) >= oneMonthAgo);
+        
+        html += `
+            <h3 class="text-lg font-semibold mb-2">Recently Sold (${recentSold.length})</h3>
+        `;
+        
+        if (recentSold.length === 0) {
+            html += `<p class="text-gray-500 mb-6">No items sold in the last 30 days</p>`;
+        } else {
+            html += `
+                <div class="overflow-x-auto mb-6">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="border px-4 py-2">Client</th>
+                                <th class="border px-4 py-2">Item</th>
+                                <th class="border px-4 py-2">Amount</th>
+                                <th class="border px-4 py-2">Date Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${recentSold.map(item => `
+                                <tr class="bg-green-50">
+                                    <td class="border px-4 py-2">${item.clientName}</td>
+                                    <td class="border px-4 py-2">${item.itemDescription}</td>
+                                    <td class="border px-4 py-2 text-right">$${item.amount.toLocaleString()}</td>
+                                    <td class="border px-4 py-2">${formatDate(item.dateUpdated)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // Render recently returned items (last 30 days)
+        const recentReturned = returned.filter(i => new Date(i.dateUpdated) >= oneMonthAgo);
+        
+        html += `
+            <h3 class="text-lg font-semibold mb-2">Recently Returned (${recentReturned.length})</h3>
+        `;
+        
+        if (recentReturned.length === 0) {
+            html += `<p class="text-gray-500">No items returned in the last 30 days</p>`;
+        } else {
+            html += `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr>
+                                <th class="border px-4 py-2">Client</th>
+                                <th class="border px-4 py-2">Item</th>
+                                <th class="border px-4 py-2">Amount</th>
+                                <th class="border px-4 py-2">Date Returned</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${recentReturned.map(item => `
+                                <tr class="bg-red-50">
+                                    <td class="border px-4 py-2">${item.clientName}</td>
+                                    <td class="border px-4 py-2">${item.itemDescription}</td>
+                                    <td class="border px-4 py-2 text-right">$${item.amount.toLocaleString()}</td>
+                                    <td class="border px-4 py-2">${formatDate(item.dateUpdated)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        approvalItemsList.innerHTML = html;
+    }
+
+    function renderMonthlySummary() {
+        const monthlySummaryContent = document.getElementById('monthlySummaryContent');
+        if (!monthlySummaryContent) return;
+        
+        // Get the current month from the selected date
+        const currentDate = new Date(state.currentDate);
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+        
+        // Filter summary entries for the current month
+        const currentMonthDates = Object.keys(state.dailySummary).filter(date => {
+            const d = new Date(date);
+            return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        }).sort();
+        
+        // Calculate totals for the month
+        let monthlyTotalSales = 0;
+        let monthlyTotalApprovals = 0;
+        
+        currentMonthDates.forEach(date => {
+            const dailyData = state.dailySummary[date];
+            monthlyTotalSales += dailyData.sales || 0;
+            monthlyTotalApprovals += dailyData.approvals || 0;
+        });
+        
+        // Update the monthly totals display
+        if (document.getElementById('monthlySalesTotal')) {
+            document.getElementById('monthlySalesTotal').textContent = `$${monthlyTotalSales.toLocaleString()}`;
+        }
+        
+        const rows = currentMonthDates.map(date => {
+            const d = new Date(date);
+            const formattedDate = d.toLocaleDateString();
+            const dailyData = state.dailySummary[date] || { sales: 0, approvals: 0 };
+            
+            // Determine if this row is for the current selected date
+            const isCurrentDate = date === state.currentDate;
+            const rowClass = isCurrentDate ? 'bg-yellow-50 font-medium' : '';
+            
+            return `
+                <tr class="${rowClass}">
+                    <td class="border px-4 py-2">${formattedDate}</td>
+                    <td class="border px-4 py-2 text-right">$${(dailyData.sales || 0).toLocaleString()}</td>
+                    <td class="border px-4 py-2 text-right">$${(dailyData.approvals || 0).toLocaleString()}</td>
+                </tr>
+            `;
+        });
+        
+        // Create the table
+        const summaryContent = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="border px-4 py-2">Date</th>
+                            <th class="border px-4 py-2">Sales</th>
+                            <th class="border px-4 py-2">Approvals</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.length > 0 ? rows.join('') : '<tr><td colspan="3" class="border px-4 py-2 text-center">No data for this month</td></tr>'}
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-100 font-bold">
+                            <td class="border px-4 py-2">Monthly Total</td>
+                            <td class="border px-4 py-2 text-right">$${monthlyTotalSales.toLocaleString()}</td>
+                            <td class="border px-4 py-2 text-right">$${monthlyTotalApprovals.toLocaleString()}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+        
+        monthlySummaryContent.innerHTML = summaryContent;
+    }
+
+    // Export to document
+    function exportToDocument() {
+        const date = new Date(state.currentDate).toLocaleDateString();
+        let content = `Business Notes - ${date}\n`;
+        content += `=================================\n\n`;
+        
+        // Summary section
+        content += `SUMMARY\n`;
+        content += `--------------\n`;
+        content += `Daily Sales: $${state.salesTotal.toLocaleString()}\n`;
+        content += `Items on Approval: $${state.approvalsTotal.toLocaleString()}\n\n`;
+        
+        // Approval Items section
+        const onApproval = state.approvalItems.filter(i => i.status === 'on_approval');
+        content += `ITEMS ON APPROVAL\n`;
+        content += `----------------\n`;
+        if (onApproval.length === 0) {
+            content += `No items currently on approval\n\n`;
+        } else {
+            onApproval.forEach(item => {
+                content += `* ${item.clientName}: ${item.itemDescription} - $${item.amount.toLocaleString()}\n`;
+            });
+            content += `\n`;
+        }
+        
+        // Tasks section
+        content += `TODAY'S TASKS\n`;
+        content += `-------------\n`;
+        const incompleteTasks = state.tasks.filter(t => !t.completed && t.date === state.currentDate);
+        const completedTasks = state.tasks.filter(t => t.completed && t.date === state.currentDate);
+        
+        content += `Pending:\n`;
+        if (incompleteTasks.length === 0) {
+            content += `None\n`;
+        } else {
+            incompleteTasks.forEach(task => {
+                content += `[ ] ${task.content} (${task.priority.toUpperCase()})\n`;
+            });
+        }
+        
+        content += `\nCompleted:\n`;
+        if (completedTasks.length === 0) {
+            content += `None\n`;
+        } else {
+            completedTasks.forEach(task => {
+                content += `[X] ${task.content}\n`;
+            });
+        }
+        
+        // Notes section
+        content += `\nTODAY'S NOTES\n`;
+        content += `-----------\n`;
+        const notesForDate = state.notes.filter(n => n.date === state.currentDate);
+        if (notesForDate.length === 0) {
+            content += `No notes for this day\n`;
+        } else {
+            notesForDate.forEach(note => {
+                const amount = note.amount ? ` - $${note.amount.toLocaleString()}` : '';
+                content += `${note.time} | ${note.content}${amount}\n`;
+            });
+        }
+        
+        // Monthly summary section
+        const currentDate = new Date(state.currentDate);
+        const monthName = currentDate.toLocaleString('default', { month: 'long' });
+        const year = currentDate.getFullYear();
+        
+        content += `\nMONTHLY SUMMARY (${monthName} ${year})\n`;
+        content += `---------------------------\n`;
+        
+        // Calculate monthly totals
+        let monthlyTotalSales = 0;
+        let monthlyTotalApprovals = 0;
+        
+        Object.keys(state.dailySummary).forEach(date => {
+            const d = new Date(date);
+            if (d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth()) {
+                const dailyData = state.dailySummary[date];
+                monthlyTotalSales += dailyData.sales || 0;
+                monthlyTotalApprovals += dailyData.approvals || 0;
+            }
+        });
+        
+        content += `Total Sales for ${monthName}: $${monthlyTotalSales.toLocaleString()}\n`;
+
+        // Create download
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `business-notes-${date.replace(/\//g, '-')}.txt`;
+        a.click();
+    }
+
+    // Backup functions
+    function backupToFile() {
+        const data = JSON.stringify(state, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `notes-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    }
+
+    function restoreFromFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const loadedState = JSON.parse(e.target.result);
+                
+                // Ensure all required properties exist
+                if (!loadedState.approvalItems) loadedState.approvalItems = [];
+                if (!loadedState.dailySummary) loadedState.dailySummary = {};
+                if (!loadedState.notes) loadedState.notes = [];
+                if (!loadedState.tasks) loadedState.tasks = [];
+                
+                state = loadedState;
+                saveState();
+                updateDateDisplay();
+                renderAll();
+                alert('Backup restored successfully!');
+            } catch (error) {
+                console.error("Error restoring backup:", error);
+                alert('Error restoring backup file');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // Helper functions
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    }
+
+    // Initialize on page load
+    window.onload = initialize;
+</script>
 </body>
 </html>
