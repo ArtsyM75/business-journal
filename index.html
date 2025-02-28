@@ -232,13 +232,68 @@
         activeTab: 'daily'
     };
 
-    // Initialize
+    // Add this right after the state management section
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Debounced save
+    let saveTimeout;
+    function debouncedSave() {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            try {
+                localStorage.setItem('notesAppState', JSON.stringify(state));
+                updateTotalsDisplay();
+            } catch (error) {
+                console.error('Failed to save state:', error);
+                alert('Failed to save data. Please ensure you have enough storage space.');
+            }
+        }, 1000);
+    }
+
+    // Enhanced initialize function with error handling
     function initialize() {
-        loadState();
-        updateDateDisplay();
-        setDateSelector();
-        switchTab('daily');
-        renderAll();
+        try {
+            loadState();
+            updateDateDisplay();
+            setDateSelector();
+            switchTab('daily');
+            renderAll();
+        } catch (error) {
+            console.error('Initialization error:', error);
+            alert('There was an error initializing the application. Please refresh the page.');
+        }
+    }
+
+    // Enhanced renderAll with loading states
+    function renderAll() {
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'text-center py-4';
+        loadingIndicator.textContent = 'Loading...';
+        
+        try {
+            // Show loading state
+            const sections = ['noteList', 'taskList', 'approvalItemsList', 'monthlySummaryContent'];
+            sections.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.innerHTML = loadingIndicator.outerHTML;
+            });
+            
+            // Perform renders
+            renderNotes();
+            renderTasks();
+            renderApprovalItems();
+            renderMonthlySummary();
+        } catch (error) {
+            console.error('Render error:', error);
+            alert('An error occurred while rendering the content. Please refresh the page.');
+        }
     }
 
     // Load saved state
@@ -270,8 +325,13 @@
 
     // Save state
     function saveState() {
-        localStorage.setItem('notesAppState', JSON.stringify(state));
-        updateTotalsDisplay();
+        try {
+            localStorage.setItem('notesAppState', JSON.stringify(state));
+            updateTotalsDisplay();
+        } catch (error) {
+            console.error('Failed to save state:', error);
+            alert('Failed to save data. Please ensure you have enough storage space.');
+        }
     }
 
     // Clear all data
@@ -459,13 +519,22 @@
         e.preventDefault();
         const input = document.getElementById('noteInput');
         const content = input.value.trim();
-        if (!content) return;
-
+        
+        if (!content) {
+            alert('Please enter a note');
+            return;
+        }
+        
+        if (content.length > 500) {
+            alert('Note is too long. Maximum 500 characters allowed.');
+            return;
+        }
+        
         const amount = extractAmount(content);
         const type = determineNoteType(content);
         const note = {
             id: Date.now(),
-            content,
+            content: escapeHtml(content),
             amount,
             time: new Date().toLocaleTimeString(),
             type,
@@ -475,11 +544,10 @@
         state.notes.unshift(note);
         updateTotals();
         updateDailySummary(state.currentDate);
-        saveState();
+        debouncedSave();
         renderNotes();
         input.value = '';
 
-        // Celebrate if it's a sale or approval
         if ((type === 'sale' || type === 'approval') && amount > 0) {
             celebrate(type);
         }
@@ -777,13 +845,17 @@
             currentDateNotes.map(note => `
                 <div class="p-3 border rounded flex justify-between items-center animate-in note-type-${note.type}">
                     <div class="flex-1">
-                        <span class="text-gray-500 text-sm">${note.time}</span>
-                        <span class="ml-2 cursor-pointer" onclick="editNote(${note.id})">${note.content}</span>
+                        <span class="text-gray-500 text-sm">${escapeHtml(note.time)}</span>
+                        <span class="ml-2 cursor-pointer" onclick="editNote(${note.id})">${escapeHtml(note.content)}</span>
                     </div>
                     ${note.amount ? `<span class="font-bold">$${note.amount.toLocaleString()}</span>` : ''}
                     <div class="ml-4 space-x-2">
-                        <button onclick="editNote(${note.id})" class="px-2 py-1 text-blue-600 hover:text-blue-800">Edit</button>
-                        <button onclick="deleteNote(${note.id})" class="px-2 py-1 text-red-600 hover:text-red-800">Delete</button>
+                        <button onclick="editNote(${note.id})" 
+                                class="px-2 py-1 text-blue-600 hover:text-blue-800"
+                                aria-label="Edit note">Edit</button>
+                        <button onclick="deleteNote(${note.id})" 
+                                class="px-2 py-1 text-red-600 hover:text-red-800"
+                                aria-label="Delete note">Delete</button>
                     </div>
                 </div>
             `).join('') :
@@ -1030,13 +1102,6 @@
         `;
         
         monthlySummaryContent.innerHTML = summaryContent;
-    }
-
-    function renderAll() {
-        renderNotes();
-        renderTasks();
-        renderApprovalItems();
-        renderMonthlySummary();
     }
 
     // Export to document
