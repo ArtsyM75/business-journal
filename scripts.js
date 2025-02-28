@@ -163,3 +163,88 @@ function switchTab(tabName) {
         if (content.id === `tab-content-${tabName}`) {
             content.classList.remove('hidden');
         } else {
+166|             content.classList.add('hidden');
+167|         }
+168|     });
+169| }
+170| 
+171| // Get today's date
+172| function getTodayDate() {
+173|     return new Date().toISOString().split('T')[0];
+174| }
+175| 
+176| // Update the date display
+177| function updateDateDisplay() {
+178|     const dateElement = document.getElementById('currentDateDisplay');
+179|     if (dateElement) dateElement.textContent = state.currentDate;
+180| }
+181| 
+182| // Set date selector
+183| function setDateSelector() {
+184|     const dateSelector = document.getElementById('dateSelector');
+185|     if (dateSelector) dateSelector.value = state.currentDate;
+186| }
+187| 
+188| // Render notes
+189| function renderNotes() {
+190|     const notesContainer = document.getElementById('noteList');
+191|     if (notesContainer) {
+192|         notesContainer.innerHTML = state.notes.map(note => `
+193|             <div class="note">
+194|                 <p>${escapeHtml(note)}</p>
+195|             </div>
+196|         `).join('');
+197|     }
+198| }
+199| 
+200| // Render tasks
+201| function renderTasks() {
+202|     const tasksContainer = document.getElementById('taskList');
+203|     if (tasksContainer) {
+204|         tasksContainer.innerHTML = state.tasks.map(task => `
+205|             <div class="task">
+206|                 <p>${escapeHtml(task)}</p>
+207|             </div>
+208|         `).join('');
+209|     }
+210| }
+211| 
+212| // Render approval items
+213| function renderApprovalItems() {
+214|     const approvalsContainer = document.getElementById('approvalItemsList');
+215|     if (approvalsContainer) {
+216|         approvalsContainer.innerHTML = state.approvalItems.map(item => `
+217|             <div class="approval-item">
+218|                 <p>${escapeHtml(item)}</p>
+219|             </div>
+220|         `).join('');
+221|     }
+222| }
+223| 
+224| // Render monthly summary
+225| function renderMonthlySummary() {
+226|     const summaryContainer = document.getElementById('monthlySummaryContent');
+227|     if (summaryContainer) {
+228|         // Example: Render summary data
+229|         summaryContainer.innerHTML = `
+230|             <div class="summary">
+231|                 <p>Total Sales: ${state.salesTotal}</p>
+232|                 <p>Total Approvals: ${state.approvalsTotal}</p>
+233|             </div>
+234|         `;
+235|     }
+236| }
+237| 
+238| // Event Listeners
+239| document.getElementById('saveButton').addEventListener('click', saveState);
+240| document.getElementById('clearButton').addEventListener('click', clearAllData);
+241| document.getElementById('tab-daily').addEventListener('click', () => switchTab('daily'));
+242| document.getElementById('tab-monthly').addEventListener('click', () => switchTab('monthly'));
+243| document.getElementById('dateSelector').addEventListener('change', event => {
+244|     state.currentDate = event.target.value;
+245|     updateDateDisplay();
+246|     debouncedSave();
+247| });
+248| 
+249| // Initialize the application
+250| initialize();
