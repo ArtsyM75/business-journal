@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://app.copper.com">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily & Monthly Notes Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         @keyframes pulseGreen {
@@ -221,6 +220,13 @@
     </div>
 
 <script>
+    // Add to the top of your script
+    window.addEventListener('error', (event) => {
+        if (event.filename?.startsWith('chrome-error://')) {
+            event.preventDefault();
+        }
+    });
+
     // State management
     let state = {
         notes: [],
@@ -233,68 +239,13 @@
         activeTab: 'daily'
     };
 
-    // Add this right after the state management section
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    // Debounced save
-    let saveTimeout;
-    function debouncedSave() {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
-            try {
-                localStorage.setItem('notesAppState', JSON.stringify(state));
-                updateTotalsDisplay();
-            } catch (error) {
-                console.error('Failed to save state:', error);
-                alert('Failed to save data. Please ensure you have enough storage space.');
-            }
-        }, 1000);
-    }
-
-    // Enhanced initialize function with error handling
+    // Initialize
     function initialize() {
-        try {
-            loadState();
-            updateDateDisplay();
-            setDateSelector();
-            switchTab('daily');
-            renderAll();
-        } catch (error) {
-            console.error('Initialization error:', error);
-            alert('There was an error initializing the application. Please refresh the page.');
-        }
-    }
-
-    // Enhanced renderAll with loading states
-    function renderAll() {
-        const loadingIndicator = document.createElement('div');
-        loadingIndicator.className = 'text-center py-4';
-        loadingIndicator.textContent = 'Loading...';
-        
-        try {
-            // Show loading state
-            const sections = ['noteList', 'taskList', 'approvalItemsList', 'monthlySummaryContent'];
-            sections.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.innerHTML = loadingIndicator.outerHTML;
-            });
-            
-            // Perform renders
-            renderNotes();
-            renderTasks();
-            renderApprovalItems();
-            renderMonthlySummary();
-        } catch (error) {
-            console.error('Render error:', error);
-            alert('An error occurred while rendering the content. Please refresh the page.');
-        }
+        loadState();
+        updateDateDisplay();
+        setDateSelector();
+        switchTab('daily');
+        renderAll();
     }
 
     // Load saved state
@@ -326,13 +277,8 @@
 
     // Save state
     function saveState() {
-        try {
-            localStorage.setItem('notesAppState', JSON.stringify(state));
-            updateTotalsDisplay();
-        } catch (error) {
-            console.error('Failed to save state:', error);
-            alert('Failed to save data. Please ensure you have enough storage space.');
-        }
+        localStorage.setItem('notesAppState', JSON.stringify(state));
+        updateTotalsDisplay();
     }
 
     // Clear all data
@@ -393,16 +339,31 @@
     // Date functions
     function updateDateDisplay() {
         const date = new Date(state.currentDate);
-        document.getElementById('currentDateDisplay').textContent = date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        updateCurrentDateDisplay(date);
+        updateCurrentMonthDisplay(date);
+    }
+
+    function updateCurrentDateDisplay(date) {
+        // Adjust for timezone offset
+        const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+        document.getElementById('currentDateDisplay').textContent = adjustedDate.toLocaleDateString('en-US', { 
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
-        
-        const monthName = date.toLocaleString('default', { month: 'long' });
-        const year = date.getFullYear();
-        document.getElementById('currentMonthDisplay').textContent = `${monthName} ${year}`;
+    }
+
+    function updateCurrentMonthDisplay(date) {
+        const currentMonthDisplay = document.querySelector('p#currentMonthDisplay');
+if (currentMonthDisplay) {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth(); // getMonth() returns 0-11 (0 = January, 1 = February, etc.)
+  const currentYear = currentDate.getFullYear();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthName = monthNames[currentMonth];
+  currentMonthDisplay.textContent = `${monthName} ${currentYear}`;
+}
     }
 
     function setDateSelector() {
@@ -520,22 +481,13 @@
         e.preventDefault();
         const input = document.getElementById('noteInput');
         const content = input.value.trim();
-        
-        if (!content) {
-            alert('Please enter a note');
-            return;
-        }
-        
-        if (content.length > 500) {
-            alert('Note is too long. Maximum 500 characters allowed.');
-            return;
-        }
-        
+        if (!content) return;
+
         const amount = extractAmount(content);
         const type = determineNoteType(content);
         const note = {
             id: Date.now(),
-            content: escapeHtml(content),
+            content,
             amount,
             time: new Date().toLocaleTimeString(),
             type,
@@ -545,10 +497,11 @@
         state.notes.unshift(note);
         updateTotals();
         updateDailySummary(state.currentDate);
-        debouncedSave();
+        saveState();
         renderNotes();
         input.value = '';
 
+        // Celebrate if it's a sale or approval
         if ((type === 'sale' || type === 'approval') && amount > 0) {
             celebrate(type);
         }
@@ -834,7 +787,11 @@
     }
 
     function getTasksForCurrentDate() {
-        return state.tasks.filter(task => task.date === state.currentDate);
+        return state.tasks.filter(task => 
+            // Show tasks if they're either from today OR uncompleted from past dates
+            task.date === state.currentDate || 
+            (!task.completed && new Date(task.date) <= new Date(state.currentDate))
+        );
     }
 
     // Render functions
@@ -846,17 +803,13 @@
             currentDateNotes.map(note => `
                 <div class="p-3 border rounded flex justify-between items-center animate-in note-type-${note.type}">
                     <div class="flex-1">
-                        <span class="text-gray-500 text-sm">${escapeHtml(note.time)}</span>
-                        <span class="ml-2 cursor-pointer" onclick="editNote(${note.id})">${escapeHtml(note.content)}</span>
+                        <span class="text-gray-500 text-sm">${note.time}</span>
+                        <span class="ml-2 cursor-pointer" onclick="editNote(${note.id})">${note.content}</span>
                     </div>
                     ${note.amount ? `<span class="font-bold">$${note.amount.toLocaleString()}</span>` : ''}
                     <div class="ml-4 space-x-2">
-                        <button onclick="editNote(${note.id})" 
-                                class="px-2 py-1 text-blue-600 hover:text-blue-800"
-                                aria-label="Edit note">Edit</button>
-                        <button onclick="deleteNote(${note.id})" 
-                                class="px-2 py-1 text-red-600 hover:text-red-800"
-                                aria-label="Delete note">Delete</button>
+                        <button onclick="editNote(${note.id})" class="px-2 py-1 text-blue-600 hover:text-blue-800">Edit</button>
+                        <button onclick="deleteNote(${note.id})" class="px-2 py-1 text-red-600 hover:text-red-800">Delete</button>
                     </div>
                 </div>
             `).join('') :
@@ -1034,13 +987,13 @@
         if (!monthlySummaryContent) return;
         
         // Get the current month from the selected date
-        const currentDate = new Date(state.currentDate);
+        const currentDate = new Date(state.currentDate + 'T00:00:00'); // Ensure consistent timezone
         const currentYear = currentDate.getFullYear();
         const currentMonth = currentDate.getMonth();
         
         // Filter summary entries for the current month
         const currentMonthDates = Object.keys(state.dailySummary).filter(date => {
-            const d = new Date(date);
+            const d = new Date(date + 'T00:00:00'); // Ensure consistent timezone
             return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
         }).sort();
         
@@ -1105,97 +1058,144 @@
         monthlySummaryContent.innerHTML = summaryContent;
     }
 
+    function renderAll() {
+        renderNotes();
+        renderTasks();
+        renderApprovalItems();
+        renderMonthlySummary();
+    }
+
     // Export to document
     function exportToDocument() {
-        const date = new Date(state.currentDate).toLocaleDateString();
-        let content = `Business Notes - ${date}\n`;
-        content += `=================================\n\n`;
+        const date = new Date(state.currentDate.replace(/-/g, '/')).toLocaleDateString();
+        let content = `BUSINESS ACTIVITY REPORT\n`;
+        content += `Generated: ${new Date().toLocaleString()}\n`;
+        content += `Report Date: ${date}\n`;
+        content += `====================================\n\n`;
         
-        // Summary section
-        content += `SUMMARY\n`;
-        content += `--------------\n`;
-        content += `Daily Sales: $${state.salesTotal.toLocaleString()}\n`;
+        // Daily Overview section
+        content += `DAILY OVERVIEW\n`;
+        content += `====================================\n`;
+        content += `Sales Revenue: $${state.salesTotal.toLocaleString()}\n`;
         content += `Items on Approval: $${state.approvalsTotal.toLocaleString()}\n\n`;
         
-        // Approval Items section
+        // Active Approvals section
         const onApproval = state.approvalItems.filter(i => i.status === 'on_approval');
-        content += `ITEMS ON APPROVAL\n`;
-        content += `----------------\n`;
+        content += `ACTIVE APPROVALS (${onApproval.length} items)\n`;
+        content += `====================================\n`;
         if (onApproval.length === 0) {
             content += `No items currently on approval\n\n`;
         } else {
+            let totalApprovalValue = 0;
             onApproval.forEach(item => {
-                content += `* ${item.clientName}: ${item.itemDescription} - $${item.amount.toLocaleString()}\n`;
+                content += `Client: ${item.clientName}\n`;
+                content += `Item: ${item.itemDescription}\n`;
+                content += `Value: $${item.amount.toLocaleString()}\n`;
+                content += `Date Added: ${new Date(item.dateAdded).toLocaleDateString()}\n`;
+                content += `-------------------\n`;
+                totalApprovalValue += item.amount;
             });
-            content += `\n`;
+            content += `Total Value on Approval: $${totalApprovalValue.toLocaleString()}\n\n`;
         }
         
-        // Tasks section
-        content += `TODAY'S TASKS\n`;
-        content += `-------------\n`;
-        const incompleteTasks = state.tasks.filter(t => !t.completed && t.date === state.currentDate);
-        const completedTasks = state.tasks.filter(t => t.completed && t.date === state.currentDate);
+        // Tasks section with priorities
+        content += `TASKS STATUS\n`;
+        content += `====================================\n`;
+        const allActiveTasks = state.tasks.filter(t => 
+            t.date === state.currentDate || (!t.completed && new Date(t.date) <= new Date(state.currentDate))
+        );
+        const highPriorityTasks = allActiveTasks.filter(t => t.priority === 'high');
+        const normalPriorityTasks = allActiveTasks.filter(t => t.priority === 'normal');
+        const lowPriorityTasks = allActiveTasks.filter(t => t.priority === 'low');
+
+        content += `HIGH PRIORITY:\n`;
+        highPriorityTasks.forEach(task => {
+            const dateStr = task.date !== state.currentDate ? ` (from ${formatDate(task.date)})` : '';
+            content += `[${task.completed ? 'X' : ' '}] ${task.content}${dateStr}\n`;
+        });
+
+        content += `\nNORMAL PRIORITY:\n`;
+        normalPriorityTasks.forEach(task => {
+            const dateStr = task.date !== state.currentDate ? ` (from ${formatDate(task.date)})` : '';
+            content += `[${task.completed ? 'X' : ' '}] ${task.content}${dateStr}\n`;
+        });
+
+        content += `\nLOW PRIORITY:\n`;
+        lowPriorityTasks.forEach(task => {
+            const dateStr = task.date !== state.currentDate ? ` (from ${formatDate(task.date)})` : '';
+            content += `[${task.completed ? 'X' : ' '}] ${task.content}${dateStr}\n`;
+        });
+        content += '\n';
         
-        content += `Pending:\n`;
-        if (incompleteTasks.length === 0) {
-            content += `None\n`;
-        } else {
-            incompleteTasks.forEach(task => {
-                content += `[ ] ${task.content} (${task.priority.toUpperCase()})\n`;
-            });
-        }
-        
-        content += `\nCompleted:\n`;
-        if (completedTasks.length === 0) {
-            content += `None\n`;
-        } else {
-            completedTasks.forEach(task => {
-                content += `[X] ${task.content}\n`;
-            });
-        }
-        
-        // Notes section
-        content += `\nTODAY'S NOTES\n`;
-        content += `-----------\n`;
+        // Daily Notes section categorized by type
+        content += `DAILY ACTIVITY LOG\n`;
+        content += `====================================\n`;
         const notesForDate = state.notes.filter(n => n.date === state.currentDate);
         if (notesForDate.length === 0) {
-            content += `No notes for this day\n`;
+            content += `No activities recorded for this day\n`;
         } else {
+            const categorizedNotes = {
+                sale: { title: 'Sales', notes: [] },
+                approval: { title: 'Approvals', notes: [] },
+                emergency: { title: 'Emergency/Security', notes: [] },
+                callmade: { title: 'Calls Made', notes: [] },
+                callreceived: { title: 'Calls Received', notes: [] },
+                emailsent: { title: 'Emails Sent', notes: [] },
+                emailreceived: { title: 'Emails Received', notes: [] },
+                general: { title: 'General Notes', notes: [] }
+            };
+            
             notesForDate.forEach(note => {
-                const amount = note.amount ? ` - $${note.amount.toLocaleString()}` : '';
-                content += `${note.time} | ${note.content}${amount}\n`;
+                if (categorizedNotes[note.type]) {
+                    categorizedNotes[note.type].notes.push(note);
+                } else {
+                    categorizedNotes.general.notes.push(note);
+                }
+            });
+            
+            Object.values(categorizedNotes).forEach(category => {
+                if (category.notes.length > 0) {
+                    content += `\n${category.title}:\n`;
+                    content += `-----------------\n`;
+                    category.notes.forEach(note => {
+                        const amount = note.amount ? ` ($${note.amount.toLocaleString()})` : '';
+                        content += `${note.time} - ${note.content}${amount}\n`;
+                    });
+                }
             });
         }
         
-        // Monthly summary section
+        // Monthly Summary section
         const currentDate = new Date(state.currentDate);
         const monthName = currentDate.toLocaleString('default', { month: 'long' });
         const year = currentDate.getFullYear();
         
-        content += `\nMONTHLY SUMMARY (${monthName} ${year})\n`;
-        content += `---------------------------\n`;
+        content += `\nMONTHLY PERFORMANCE (${monthName} ${year})\n`;
+        content += `====================================\n`;
         
-        // Calculate monthly totals
         let monthlyTotalSales = 0;
         let monthlyTotalApprovals = 0;
+        let monthlyTransactionCount = 0;
         
-        Object.keys(state.dailySummary).forEach(date => {
+        Object.entries(state.dailySummary).forEach(([date, dailyData]) => {
             const d = new Date(date);
             if (d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth()) {
-                const dailyData = state.dailySummary[date];
                 monthlyTotalSales += dailyData.sales || 0;
                 monthlyTotalApprovals += dailyData.approvals || 0;
+                if (dailyData.sales > 0) monthlyTransactionCount++;
             }
         });
         
-        content += `Total Sales for ${monthName}: $${monthlyTotalSales.toLocaleString()}\n`;
-
-        // Create download
+        content += `Total Sales: $${monthlyTotalSales.toLocaleString()}\n`;
+        content += `Average Daily Sales: $${(monthlyTotalSales / (monthlyTransactionCount || 1)).toLocaleString()}\n`;
+        content += `Active Approval Value: $${monthlyTotalApprovals.toLocaleString()}\n`;
+        
+        // Create and trigger download
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `business-notes-${date.replace(/\//g, '-')}.txt`;
+        a.download = `business-report-${state.currentDate}.txt`;
         a.click();
     }
 
